@@ -13,16 +13,19 @@ jobs:
     - name: Checkout del código
       uses: actions/checkout@v4
 
-    - name: Configurar Java JDK 17
+    - name: Configurar Java
       uses: actions/setup-java@v5
       with:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Compilar el APK
-      run: gradle assembleDebug
+    - name: Generar Gradle Wrapper
+      run: gradle wrapper --gradle-version 8.3
 
-    - name: Subir el APK para descargar
+    - name: Compilar el APK
+      run: ./gradlew assembleDebug
+
+    - name: Subir el APK
       uses: actions/upload-artifact@v4
       with:
         name: GymTracker-APK
