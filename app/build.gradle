@@ -1,0 +1,22 @@
+plugins {
+    id 'com.android.application'
+}
+android {
+    namespace 'com.dani.gymtracker'
+    compileSdk 34
+    defaultConfig {
+        applicationId "com.dani.gymtracker"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+}
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+}

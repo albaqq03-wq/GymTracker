@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Gym Tracker Pro</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(51, 65, 85, 0.5); }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out; }
+        .animate-slide-up { animation: slideUp 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .gradient-text { background: linear-gradient(to right, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    </style>
+</head>
+<body class="select-none antialiased">
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Iconos SVG
+        const IconUp = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"/></svg>;
+        const IconDown = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"/></svg>;
+        const IconTrash = () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>;
+        const IconCheck = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg>;
+
+        const defaultData = {
+            Dani: {
+                Pull: [
+                    { id: 1, name: 'Remo sentado (Etenon)', target: '10-12', seat: '-', weight: 55, lastReps: '12-12-12', notes: 'Sobrecarga si llegas a 12' },
+                    { id: 2, name: 'Jalón neutro', target: '10-12', seat: '-', weight: 60, lastReps: '10-10-10', notes: '' },
+                    { id: 3, name: 'Remo en T (pecho apoyado)', target: '10-12', seat: '-', weight: 35, lastReps: '10-10-10', notes: '' },
+                    { id: 4, name: 'Pec Deck reverso', target: '12-15', seat: '-', weight: 15, lastReps: '12-12-12', notes: '' },
+                    { id: 5, name: 'Curl predicador con barra EZ', target: '10-12', seat: 'Nivel 5', weight: 7.5, lastReps: '10-10-10', notes: '/lado' },
+                    { id: 6, name: 'Curl martillo sentado', target: '10-12', seat: '-', weight: 8, lastReps: '10-10-10', notes: '' },
+                    { id: 7, name: 'Cardio Cinta', target: 'Pendiente 12%', seat: '-', weight: '4.6', lastReps: 'km/h', notes: '' }
+                ],
+                Push: [
+                    { id: 8, name: 'Press de pecho en máquina', target: '10-12', seat: 'Nivel 8', weight: 30, lastReps: '12-12-12', notes: '/lado. Retracción escapular' },
+                    { id: 9, name: 'Press inclinado en máquina', target: '10-12', seat: 'Nivel 7', weight: 20, lastReps: '10-10-10', notes: '' },
+                    { id: 10, name: 'Elevaciones laterales máquina', target: '12-15', seat: 'Nivel 2', weight: 15, lastReps: '12-12-12', notes: '' }
+                ],
+                Legs: [
+                    { id: 11, name: 'Prensa de Gemelos', target: '12-15', seat: 'Nivel 7', weight: 40, lastReps: '12-12-12', notes: '' },
+                    { id: 12, name: 'Andar con inclinación', target: '15 min', seat: '-', weight: 5, lastReps: '12%', notes: 'Sustituye Pallof' }
+                ],
+                Viernes: [
+                    { id: 13, name: 'Press de hombro máquina', target: '10-12', seat: 'Nivel 6', weight: 25, lastReps: '12-12-12', notes: 'Pesos independientes' },
+                    { id: 14, name: 'Extensión tríceps sobre cabeza (Barra V)', target: '10-12', seat: '-', weight: 20, lastReps: '10-10-10', notes: 'Bilateral' },
+                    { id: 15, name: 'Extensión tríceps polea (Barra V)', target: '10-12', seat: '-', weight: 25, lastReps: '10-10-10', notes: 'Bilateral' }
+                ]
+            },
+            Alba: {
+                Pull: [], Push: [], Legs: [], Viernes: []
+            }
+        };
+
+        function App() {
+            const [profile, setProfile] = useState('Dani');
+            const [day, setDay] = useState('Pull');
+            const [exercises, setExercises] = useState(() => {
+                const saved = localStorage.getItem('gymTrackerData_PremiumUI');
+                return saved ? JSON.parse(saved) : defaultData;
+            });
+            const [completedIds, setCompletedIds] = useState([]);
+            const [showSummary, setShowSummary] = useState(false);
+            
+            const [sessionInputs, setSessionInputs] = useState({});
+            const [editingId, setEditingId] = useState(null);
+            const [editingName, setEditingName] = useState('');
+
+            useEffect(() => {
+                localStorage.setItem('gymTrackerData_PremiumUI', JSON.stringify(exercises));
+            }, [exercises]);
+
+            const currentList = exercises[profile]?.[day] || [];
+            const pendingList = currentList.filter(ex => !completedIds.includes(ex.id));
+
+            const updateSessionInput = (exId, field, value) => {
+                setSessionInputs(prev => ({
+                    ...prev,
+                    [exId]: { ...prev[exId], [field]: value }
+                }));
+            };
+
+            const updateRepInput = (exId, index, value) => {
+                setSessionInputs(prev => {
+                    const current = prev[exId] || {};
+                    const reps = [...(current.reps || [])];
+                    reps[index] = value;
+                    return { ...prev, [exId]: { ...current, reps } };
+                });
+            };
+
+            const startEditing = (ex) => {
+                setEditingId(ex.id);
+                setEditingName(ex.name);
+            };
+
+            const saveEditing = (id) => {
+                if (editingName.trim() === '') {
+                    setEditingId(null);
+                    return;
+                }
+                const updatedList = currentList.map(item =>
+                    item.id === id ? { ...item, name: editingName } : item
+                );
+                setExercises(prev => ({
+                    ...prev,
+                    [profile]: { ...prev[profile], [day]: updatedList }
+                }));
+                setEditingId(null);
+            };
+
+            const handleComplete = (ex) => {
+                const currentInput = sessionInputs[ex.id] || {};
+                const finalWeight = currentInput.weight !== undefined ? currentInput.weight : ex.weight;
+                
+                let finalReps = ex.lastReps;
+                if (ex.lastReps.toString().includes('-')) {
+                    const setsCount = ex.lastReps.toString().split('-').length;
+                    const repArray = currentInput.reps || ex.lastReps.toString().split('-');
+                    finalReps = Array.from({ length: setsCount }).map((_, i) => repArray[i] || '0').join('-');
+                } else {
+                    if (currentInput.reps && currentInput.reps[0] !== undefined) {
+                        finalReps = currentInput.reps[0];
+                    }
+                }
+
+                const updatedList = currentList.map(item => {
+                    if (item.id === ex.id) {
+                        return {
+                            ...item,
+                            weight: finalWeight,
+                            lastReps: finalReps,
+                            history: [...(item.history || []), { date: new Date().toISOString(), weight: finalWeight, reps: finalReps }]
+                        };
+                    }
+                    return item;
+                });
+
+                setExercises(prev => ({ ...prev, [profile]: { ...prev[profile], [day]: updatedList } }));
+                setCompletedIds([...completedIds, ex.id]);
+                if (pendingList.length === 1) setShowSummary(true);
+            };
+
+            const resetSession = () => {
+                setCompletedIds([]);
+                setShowSummary(false);
+                setSessionInputs({}); 
+            };
+
+            const moveExercise = (index, dir) => {
+                const newList = [...currentList];
+                if (dir === -1 && index > 0) {
+                    [newList[index], newList[index - 1]] = [newList[index - 1], newList[index]];
+                } else if (dir === 1 && index < newList.length - 1) {
+                    [newList[index], newList[index + 1]] = [newList[index + 1], newList[index]];
+                }
+                setExercises(prev => ({...prev, [profile]: {...prev[profile], [day]: newList}}));
+            };
+
+            const deleteExercise = (id) => {
+                const newList = currentList.filter(ex => ex.id !== id);
+                setExercises(prev => ({...prev, [profile]: {...prev[profile], [day]: newList}}));
+            };
+
+            const checkMaxReps = (lastReps, target) => {
+                if (!lastReps || !target) return false;
+                const topTarget = target.split('-')[1];
+                if (!topTarget) return false;
+                const repsArray = lastReps.split('-');
+                if (repsArray.length < 3) return false;
+                return repsArray.every(rep => parseInt(rep.trim()) >= parseInt(topTarget.trim()));
+            };
+
+            if (showSummary) {
+                return (
+                    <div className="p-5 max-w-md mx-auto animate-fade-in pb-24 min-h-screen">
+                        <div className="bg-gradient-to-br from-emerald-500 to-teal-700 p-6 rounded-3xl text-center mb-8 shadow-2xl shadow-emerald-900/50 mt-4 relative overflow-hidden">
+                            <h2 className="text-4xl font-black mb-2 text-white tracking-tight">¡BRUTAL!</h2>
+                            <p className="text-emerald-100 font-medium text-lg">Sesión de {day} completada</p>
+                        </div>
+                        <div className="glass-card rounded-3xl p-6 mb-8 relative">
+                            <h3 className="font-bold border-b border-slate-600 pb-4 mb-5 text-xl gradient-text">Registros Actualizados</h3>
+                            <div className="space-y-5">
+                                {currentList.map(ex => (
+                                    <div key={ex.id} className="flex justify-between items-center group">
+                                        <div className="w-1/2"><div className="font-bold text-slate-200 leading-tight">{ex.name}</div></div>
+                                        <div className="w-1/2 text-right">
+                                            <div className="text-blue-400 font-black text-lg">{ex.weight} <span className="text-xs text-blue-300">kg</span></div>
+                                            <div className="text-xs text-emerald-400 font-medium tracking-wide">HOY: {ex.lastReps}</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <button onClick={resetSession} className="w-full bg-slate-800 border border-slate-600 hover:bg-slate-700 text-white p-5 rounded-2xl font-bold shadow-lg transition-all flex justify-center items-center gap-3">
+                            Reiniciar sesión
+                        </button>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="max-w-md mx-auto min-h-screen pb-28 relative">
+                    <header className="bg-slate-900/90 backdrop-blur-lg border-b border-slate-800 p-5 sticky top-0 z-20 flex justify-between items-center">
+                        <h1 className="text-2xl font-black gradient-text tracking-tight">GymTracker</h1>
+                        <select value={profile} onChange={e => {setProfile(e.target.value); resetSession();}} className="appearance-none bg-slate-800 border border-slate-700 text-blue-400 py-2 px-4 rounded-xl font-bold outline-none shadow-sm">
+                            <option>Dani</option>
+                            <option>Alba</option>
+                        </select>
+                    </header>
+                    <div className="p-4">
+                        <div className="flex gap-3 overflow-x-auto mb-6 pb-2 scrollbar-hide snap-x">
+                            {['Pull', 'Push', 'Legs', 'Viernes'].map(d => (
+                                <button key={d} onClick={() => {setDay(d); resetSession();}} className={`snap-center px-6 py-3 rounded-2xl whitespace-nowrap font-bold transition-all ${day === d ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50 scale-105' : 'glass-card text-slate-400'}`}>
+                                    {d}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="flex justify-between items-center px-2 mb-4">
+                            <div className="text-slate-400 font-medium text-sm bg-slate-800/50 px-4 py-1.5 rounded-full border border-slate-700/50">Restantes: <span className="text-blue-400 font-bold">{pendingList.length}</span> / {currentList.length}</div>
+                            {completedIds.length > 0 && <button onClick={resetSession} className="text-xs font-bold text-slate-500 uppercase">↺ Restaurar</button>}
+                        </div>
+                        <div className="space-y-5">
+                            {pendingList.map((ex, idx) => {
+                                const isMaxReached = checkMaxReps(ex.lastReps, ex.target);
+                                const setsCount = ex.lastReps.toString().includes('-') ? ex.lastReps.toString().split('-').length : 1;
+                                const currentInput = sessionInputs[ex.id] || {};
+                                const currentWeight = currentInput.weight !== undefined ? currentInput.weight : ex.weight;
+                                const currentReps = currentInput.reps || ex.lastReps.toString().split('-');
+
+                                return (
+                                    <div key={ex.id} className="glass-card rounded-3xl p-5 relative overflow-hidden animate-slide-up">
+                                        {isMaxReached && <div className="absolute top-0 right-0 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-900 text-[10px] font-black px-4 py-1.5 rounded-bl-xl shadow-lg uppercase z-10">¡Subir peso!</div>}
+                                        <div className="flex justify-between items-start mb-4 relative z-0">
+                                            <div className="w-[75%]">
+                                                {editingId === ex.id ? (
+                                                    <input type="text" autoFocus value={editingName} onChange={(e) => setEditingName(e.target.value)} onBlur={() => saveEditing(ex.id)} onKeyDown={(e) => e.key === 'Enter' && saveEditing(ex.id)} className="font-bold text-slate-100 text-xl bg-slate-800/80 border-b-2 border-indigo-500 outline-none w-full rounded px-2 py-1 focus:ring-1 focus:ring-indigo-500/50" />
+                                                ) : (
+                                                    <h3 onClick={() => startEditing(ex)} className="font-bold text-slate-100 text-xl cursor-pointer flex items-center gap-2">
+                                                        {ex.name} <span className="text-[10px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">✎</span>
+                                                    </h3>
+                                                )}
+                                            </div>
+                                            <div className="flex flex-col gap-1 absolute right-0 top-0 opacity-80">
+                                                <div className="flex bg-slate-700/50 rounded-lg overflow-hidden border border-slate-600/50 backdrop-blur-sm">
+                                                    <button onClick={() => moveExercise(currentList.indexOf(ex), -1)} className="p-1.5 text-slate-400"><IconUp /></button>
+                                                    <button onClick={() => moveExercise(currentList.indexOf(ex), 1)} className="p-1.5 text-slate-400 border-l border-slate-600/50"><IconDown /></button>
+                                                </div>
+                                                <button onClick={() => deleteExercise(ex.id)} className="mt-1 p-1.5 text-rose-400 bg-rose-950/30 rounded-lg border border-rose-900/30 flex justify-center"><IconTrash /></button>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2 mb-5">
+                                            <span className="bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold px-3 py-1.5 rounded-lg">🎯 {ex.target}</span>
+                                            <span className="bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold px-3 py-1.5 rounded-lg">💺 {ex.seat}</span>
+                                        </div>
+                                        <div className="flex justify-between items-end mb-4 px-1">
+                                            <div>
+                                                <div className="text-slate-500 text-[10px] font-black uppercase mb-1">Récord Anterior</div>
+                                                <div className="flex items-baseline gap-1"><span className="font-bold text-xl text-slate-300">{ex.weight}</span> <span className="font-bold text-slate-500 text-sm">kg</span></div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="text-slate-500 text-[10px] font-black uppercase mb-1">Reps Anteriores</div>
+                                                <div className="font-bold text-slate-400 text-lg">{ex.lastReps}</div>
+                                            </div>
+                                        </div>
+                                        <div className="bg-slate-800/80 rounded-2xl p-4 mb-5 border border-slate-700/50">
+                                            <div className="text-slate-400 text-xs font-black uppercase mb-3 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>Registro de Hoy</div>
+                                            <div className="flex gap-3">
+                                                <div className="w-1/3">
+                                                    <label className="text-[10px] text-slate-500 font-bold uppercase block mb-1">Peso (kg)</label>
+                                                    <input type="number" step="0.5" className="w-full bg-slate-900 border border-slate-600 rounded-xl py-2 px-1 text-white font-black text-center outline-none" value={currentWeight} onChange={(e) => updateSessionInput(ex.id, 'weight', e.target.value)} />
+                                                </div>
+                                                <div className="w-2/3">
+                                                    <label className="text-[10px] text-slate-500 font-bold uppercase block mb-1">Series (Reps)</label>
+                                                    <div className="flex gap-1.5">
+                                                        {Array.from({ length: setsCount }).map((_, i) => (
+                                                            <input key={i} type="text" inputMode="numeric" className="w-full bg-slate-900 border border-slate-600 rounded-xl py-2 px-1 text-white font-black text-center outline-none" value={currentReps[i] || ''} onChange={(e) => updateRepInput(ex.id, i, e.target.value)} />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button onClick={() => handleComplete(ex)} className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-black py-4 rounded-xl shadow-lg flex justify-center items-center gap-2">
+                                            <IconCheck /> Completar y Guardar
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
